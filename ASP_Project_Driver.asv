@@ -1,0 +1,22 @@
+%% ASP Term Project Driver
+% Adaptive Noise Cancelation in Music signals
+% Chris Novak, Natalie Meyer
+
+%% Read in audio data
+audiodir = './ASP_Project_Audio';
+listname = dir(audiodir);
+listname = listname(3:end);
+
+music_files = {};
+for i = 1:length(listname)
+    y = audioread(A)
+end
+
+
+%% Add Noise
+
+%% Pre process WOLA
+
+
+
+
