@@ -7,7 +7,7 @@ audiodir = './ASP_Project_Audio/';
 listname = dir(audiodir);
 listname = listname(3:end);
 fs = 44100;
-t_per_song = 5; % 5 second clips of each song
+t_per_song = 10; % 5 second clips of each song
 num_samples = t_per_song * fs;
 music_files = {};
 for i = 1:length(listname)
@@ -27,7 +27,7 @@ noiselen = 1 * fs; % change noise every 1 sec
 num_frames = xlen / noiselen;
 xn = zeros(xlen,1); % signal + noise
 sn = zeros(xlen,1); % noise
-gains = [.01,.05,.01,.08,.005]; % can change this 
+gains = ones(1,noiselen)*.05; % can change this 
 
 for f = 0:num_frames-1
     ind = 1+f*noiselen:noiselen+f*noiselen;
@@ -46,13 +46,23 @@ plot(xn);
 
 %% Run adaptive noise cancelation process
 
-win_len = 512; % define in samples for now
+% win_len = 512; % define in samples for now
+% 
+% % hann window - 50% overlap negates need for normalization
+% win = hann(win_len,"periodic")';
+% hop = win_len / 2; 
+% 
+% ys = run_anc(xn,sn,win,hop);
 
-% hann window - 50% overlap negates need for normalization
-win = hann(win_len,"periodic")';
-hop = win_len / 2; 
+xc = perform_lms(xn,sn,.1,20);
 
-ys = run_anc(xn,sn,win,hop);
+figure;
+subplot(311);
+plot(x);
+subplot(312);
+plot(xn);
+subplot(313);
+plot(xc);
 
 %% Compare SNR
 
