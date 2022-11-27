@@ -8,15 +8,15 @@ function xc = perform_lms(x,r,mu,p)
 % Output
     % xc - noise canceled signal
 
-w = zeros(1,p);
-r_buffer = zeros(1,p);
+w = zeros(p,1);
+r_buffer = zeros(p,1);
 N = length(x);
 xc = zeros(N,1);
 
 for n = 1:N
     r_buffer(1) = r(n);
     
-    y = w * r_buffer';
+    y = w' * r_buffer;
     e = x(n) - y;
     xc(n) = e;
     w = w + 2*mu*e.*r_buffer;
