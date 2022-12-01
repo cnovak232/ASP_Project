@@ -1,4 +1,4 @@
-function [xc] = perform_afa(x,r,mu,p, gamma)
+function [xc] = perform_afa(x,r,gamma,p)
 % Adaptive Average Filter Noise Cancelation Algorithm
 %Sources:
 %https://ieeexplore-ieee-org.proxy1.library.jhu.edu/document/9418193
@@ -12,23 +12,23 @@ function [xc] = perform_afa(x,r,mu,p, gamma)
 % Output
     % xc - noise canceled signal
 
-w = zeros(1,p);
-r_buffer = zeros(1,p);
+w = zeros(p,1);
+r_buffer = zeros(p,1);
 N = length(x);
 xc = zeros(N,1);
-wprev = zeros(1,p);
-gprev = zeros(1,p);
+wprev = zeros(p,1);
+gprev = zeros(p,1);
 
 for n = 1:N
     r_buffer(1) = r(n);
     
-    y = w * r_buffer';
+    y = w' * r_buffer;
     e = x(n) - y;
     xc(n) = e;
    % w = w + 2*mu*e.*r_buffer;
 
-    what = (1/N) .* (((N-1).*wprev) + w);
-    ghat = (1/(N^gamma)) * ((((N-1)^gamma) * gprev) + e.*r_buffer);
+    what = (1/n) .* (((n-1).*wprev) + w);
+    ghat = (1/(n^gamma)) * ((((n-1)^gamma) * gprev) + e.*r_buffer);
 
     w = what + ghat;
 

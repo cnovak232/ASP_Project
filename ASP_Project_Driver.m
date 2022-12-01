@@ -53,7 +53,8 @@ title('Signal with noise')
 
 xc_lms = perform_lms(xn,ref_noise,.001,10);
 xc_nlms = perform_nlms(xn,ref_noise,.001,10);
-
+xc_rls = perform_rls(xn,ref_noise,1,1,10);
+xc_afa = perform_afa(xn,ref_noise,.6,10);
 
 % figure;
 % subplot(411);
@@ -66,13 +67,19 @@ xc_nlms = perform_nlms(xn,ref_noise,.001,10);
 % plot(xc_nlms);
 
 % plot convergence of algorithms
-cnvrge_lms = abs(x - xc_lms);
-cnvrge_nlms = abs(x - xc_nlms);
+converge_lms = abs(x - xc_lms);
+converge_nlms = abs(x - xc_nlms);
+converge_rls = abs( x - xc_rls);
+converge_afa = abs(x - xc_afa);
 figure;
-subplot(211);
-plot(cnvrge_lms);
-subplot(212);
-plot(cnvrge_nlms);
+subplot(411);
+plot(converge_lms);
+subplot(412);
+plot(converge_nlms);
+subplot(413);
+plot(converge_rls);
+subplot(414);
+plot(converge_afa);
 
 % Compare SNR 
 snr_before = compute_snr(x,xn)
@@ -80,6 +87,10 @@ snr_before = compute_snr(x,xn)
 snr_lms = compute_snr(x,xc_lms)
 
 snr_nlms = compute_snr(x,xc_nlms)
+
+snr_rls = compute_snr(x,xc_rls)
+
+snr_afa = compute_snr(x,xc_afa)
 
 %% Multirate
 

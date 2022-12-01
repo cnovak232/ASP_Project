@@ -1,4 +1,4 @@
-function [xc] = perform_rls(x,r,mu,sigma,lambda,p)
+function [xc] = perform_rls(x,r,lambda,sigma,p)
 % RLS Adaptive Noise Cancelation Algorithm-
 % Sources:
 % https://ieeexplore.ieee.org/abstract/document/6016426
@@ -12,24 +12,24 @@ function [xc] = perform_rls(x,r,mu,sigma,lambda,p)
     % xc - noise canceled signal
 
 
-w = zeros(1,p);
-r_buffer = zeros(1,p);
+w = zeros(p,1);
+r_buffer = zeros(p,1);
 N = length(x);
 xc = zeros(N,1);
-P_prev = sigma*eye(p);
+Pn = sigma*eye(p);
 
 for n = 1:N
     r_buffer(1) = r(n);
     
-    y = w * r_buffer';
+    y = w' * r_buffer;
     e = x(n) - y;
     xc(n) = e;
-    %calculate weights
-    pi = (r_buffer*P_prev) / (lambda + (r_buffer*P_prev*r_buffer'));
-    
-    w = w + (pi*e);
-    P_prev = (lambda^-1)*P_prev - ((lambda^-1)*((pi*r_buffer')*P_prev));
 
+    %calculate weights
+    gn = (Pn*r_buffer) / (lambda + (r_buffer'*Pn*r_buffer));
+    Pn = (lambda^-1)*Pn - ((lambda^-1)*((gn*r_buffer')*Pn));
+
+    w = w + (gn*e);
     %J = (lambda^(N-n))*(abs(e)^2);
     
     r_buffer(end) = 0;
