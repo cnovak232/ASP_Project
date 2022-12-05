@@ -27,14 +27,14 @@ noiselen = 1 * fs; % change noise every 1 sec
 num_frames = xlen / noiselen;
 xn = zeros(xlen,1); % signal + noise
 ref_noise = zeros(xlen,1); % noise
-gains = [.08 .08 .08 .08 .08]; % can change this to be varying
+gains = [.1 .1 .1 .1 .1]; % can change this to be varying
 for f = 0:num_frames-1
     ind = 1+f*noiselen:noiselen+f*noiselen;
     ref_noise(ind) = gains(f+1)*randn(noiselen,1);
 end
 
 % form some correlation between primary and reference noise
-lp = fir1(11,.4);
+lp = fir1(20,.4);
 prim_noise = filter(lp,1,ref_noise); 
 xn = x + prim_noise;
 
@@ -49,12 +49,17 @@ subplot(313);
 plot(xn);
 title('Signal with noise')
 
-%% Run adaptive noise cancelation algorithms
+%% Run adaptive noise cancelation algorithms - optimal params
+p = 10; % filter order
+mu = .001; % convergence factor for lms/nlms between 0 and 1
+lambda = 1; % "forgetting" factor for rls - usually between .98 and 1
+sigma = 1; % initial update matrix param
+gamma = .6; % gain parameter for afa convergence between .5 and 1
 
-xc_lms = perform_lms(xn,ref_noise,.001,10);
-xc_nlms = perform_nlms(xn,ref_noise,.001,10);
-xc_rls = perform_rls(xn,ref_noise,1,1,10);
-xc_afa = perform_afa(xn,ref_noise,.6,10);
+xc_lms = perform_lms(xn,ref_noise,mu,p);
+xc_nlms = perform_nlms(xn,ref_noise,mu,p);
+xc_rls = perform_rls(xn,ref_noise,lambda,sigma,p);
+xc_afa = perform_afa(xn,ref_noise,gamma,p);
 
 % figure;
 % subplot(411);
@@ -92,8 +97,118 @@ snr_rls = compute_snr(x,xc_rls)
 
 snr_afa = compute_snr(x,xc_afa)
 
+% Compare PSNR 
+psnr_before = compute_psnr(x,xn)
+
+psnr_lms = compute_psnr(x,xc_lms)
+
+psnr_nlms = compute_psnr(x,xc_nlms)
+
+psnr_rls = compute_psnr(x,xc_rls)
+
+psnr_afa = compute_psnr(x,xc_afa)
+
 %% Multirate
 
 xc_wavelet = perform_wavelet_anc(xn,ref_noise,.01,10,1,'db6');
 
 snr_mr = compute_snr(x,xc_wavelet)
+
+%% Test parameters
+p = 10;
+mu = linspace(.0001,.1,500);
+mse_lms = zeros(1,length(mu));
+mse_nlms = zeros(1,length(mu));
+for i = 1:length(mu)
+    xc_lms = perform_lms(xn,ref_noise,mu(i),p);
+    xc_nlms = perform_nlms(xn,ref_noise,mu(i),p);
+
+    mse_lms(i) = compute_mse(x,xc_lms);
+    mse_nlms(i) = compute_mse(x,xc_nlms);
+end
+
+figure;
+plot(mu,mse_lms,mu,mse_nlms);
+xlabel('Step Size (mu)');
+ylabel('MSE');
+legend('LMS','NLMS');
+
+[min_mse_lms,loc_lms] = min(mse_lms);
+best_mu_lms = mu(loc_lms)
+[min_mse_nlms,loc_nlms] = min(mse_nlms);
+best_mu_nlms = mu(loc_nlms)
+
+lambda = linspace(.98,1,10);
+mse_rls = zeros(1,length(lambda));
+for i = 1:length(lambda)
+    xc_rls = perform_rls(xn,ref_noise,lambda(i),1,p);
+
+    mse_rls(i) = compute_mse(x,xc_rls);
+end
+figure;
+plot(lambda,mse_rls);
+xlabel('Forgetting Factor (lambda)');
+ylabel('MSE');
+legend('RLS');
+[min_mse_rls,loc_rls] = min(mse_rls);
+best_lam_rls = lambda(loc_rls)
+
+gamma = linspace(.5,1,100);
+mse_afa = zeros(1,length(gamma));
+for i = 1:length(gamma)
+    xc_afa = perform_afa(xn,ref_noise,gamma(i),p);
+
+    mse_afa(i) = compute_mse(x,xc_afa);
+end
+figure;
+plot(gamma,mse_afa);
+xlabel('Gain Step Size (gamma)');
+ylabel('MSE');
+legend('AFA');
+[min_mse_afa,loc_afa] = min(mse_afa);
+best_gam_afa = gamma(loc_afa)
+
+p = 4:32;
+mse_lms = zeros(1,length(p));
+mse_nlms = zeros(1,length(p));
+mse_rls = zeros(1,length(p));
+mse_afa = zeros(1,length(p));
+
+psnr_lms = zeros(1,length(p));
+psnr_nlms = zeros(1,length(p));
+psnr_rls = zeros(1,length(p));
+psnr_afa = zeros(1,length(p));
+
+for i = 1:length(p)
+    xc_lms = perform_lms(xn,ref_noise,best_mu_lms,p(i));
+    xc_nlms = perform_nlms(xn,ref_noise,best_mu_nlms,p(i));
+    xc_rls = perform_rls(xn,ref_noise,best_lam_rls,1,p(i));
+    xc_afa = perform_afa(xn,ref_noise,best_gam_afa,p(i));
+
+    mse_lms(i) = compute_mse(x,xc_lms);
+    mse_nlms(i) = compute_mse(x,xc_nlms);
+    mse_rls(i) = compute_mse(x,xc_rls);
+    mse_afa(i) = compute_mse(x,xc_afa);
+
+    psnr_lms(i) = compute_psnr(x,xc_lms);
+    psnr_nlms(i) = compute_psnr(x,xc_nlms);
+    psnr_rls(i) = compute_psnr(x,xc_rls);
+    psnr_afa(i) = compute_psnr(x,xc_afa);
+end
+
+figure;
+plot(p,mse_lms,p,mse_nlms,p,mse_rls,p,mse_afa);
+legend('LMS','NLMS','RLS','AFA');
+xlabel('Filter Order');
+ylabel('MSE');
+
+figure;
+plot(p,psnr_lms,p,psnr_nlms,p,psnr_rls,p,psnr_afa);
+legend('LMS','NLMS','RLS','AFA');
+xlabel('Filter Order');
+ylabel('Peak SNR (dB)');
+    
+
+
+
+

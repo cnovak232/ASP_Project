@@ -6,9 +6,8 @@ function [xc] = perform_afa(x,r,gamma,p)
 % Inputs
     % x - noisy signal
     % r - reference noise signal
-    % mu - step size for convergence
     % p - filter order
-    %gamma - gain parameter
+    % gamma - gain parameter
 % Output
     % xc - noise canceled signal
 

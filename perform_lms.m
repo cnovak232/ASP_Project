@@ -19,7 +19,7 @@ for n = 1:N
     y = w' * r_buffer;
     e = x(n) - y;
     xc(n) = e;
-    w = w + 2*mu*e.*r_buffer;
+    w = w + mu*e.*r_buffer;
     
     r_buffer(end) = 0;
     r_buffer = circshift(r_buffer,1);

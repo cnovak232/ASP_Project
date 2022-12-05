@@ -6,7 +6,8 @@ function [xc] = perform_rls(x,r,lambda,sigma,p)
 % Inputs
     % x - noisy signal
     % r - reference noise signal
-    % c - normalization constant (<1)
+    % lambda -
+    % sigma =
     % p - filter order
 % Output
     % xc - noise canceled signal
