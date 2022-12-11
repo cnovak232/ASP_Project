@@ -14,7 +14,19 @@ for i = 1:length(listname)
     [y,fs] = audioread([audiodir, listname(i).name],[1 num_samples]);
     music_files{i} = y;
 end
+%% Read in Speech Signals 
 
+audiodir = './SpeechSignals/';
+listname = dir(audiodir);
+listname = listname(3:end);
+ fs = 16000;
+ t_per_song = 5; % 10 second clips of each song
+ num_samples = t_per_song * fs;
+speech_files = {};
+for i = 1:length(listname)
+    [y,fs] = audioread([audiodir, listname(i).name]);
+    speech_files{i} = y;
+end
 
 %% Add variable noise noise
 x = music_files{1};
@@ -208,6 +220,38 @@ legend('LMS','NLMS','RLS','AFA');
 xlabel('Filter Order');
 ylabel('Peak SNR (dB)');
     
+
+%% 
+converge_lms = abs(x - xc_lms);
+converge_nlms = abs(x - xc_nlms);
+converge_rls = abs( x - xc_rls);
+converge_afa = abs(x - xc_afa);
+figure;
+sgtitle('Convergence of Algorithms with Optimal Parameters')
+
+subplot(411);
+plot(converge_lms);
+title('LMS')
+subplot(412);
+plot(converge_nlms);
+title('NMLS')
+subplot(413);
+plot(converge_rls);
+title('RLS')
+subplot(414);
+plot(converge_afa);
+title('AFA')
+
+snr_before = compute_snr(x,xn)
+
+snr_lms = compute_snr(x,xc_lms)
+
+snr_nlms = compute_snr(x,xc_nlms)
+
+snr_rls = compute_snr(x,xc_rls)
+
+snr_afa = compute_snr(x,xc_afa)
+
 
 
 
