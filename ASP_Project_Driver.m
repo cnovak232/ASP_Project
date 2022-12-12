@@ -35,21 +35,6 @@ x = music_files{1};
 x = mean(x,2);
 
 [xn,ref_noise] = create_and_add_noise(x,.5,10,.5,'crowd');
-% xlen = length(x);
-% noiselen = 1 * fs; % change noise every 1 sec
-% num_frames = xlen / noiselen;
-% xn = zeros(xlen,1); % signal + noise
-% ref_noise = zeros(xlen,1); % noise
-% gains = [.05 .05 .05 .05 .05 .05 .05 .05 .05 .05]; % can change this to be varying
-% for f = 0:num_frames-1
-%     ind = 1+f*noiselen:noiselen+f*noiselen;
-%     ref_noise(ind) = gains(f+1)*randn(noiselen,1);
-% end
-% 
-% % form some correlation between primary and reference noise
-% lp = fir1(10,.4);
-% prim_noise = filter(lp,1,ref_noise); 
-% xn = x + prim_noise;
 
 figure;
 subplot(311);
