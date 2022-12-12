@@ -7,7 +7,7 @@ audiodir = './ASP_Project_Audio/';
 listname = dir(audiodir);
 listname = listname(3:end);
 fs = 44100;
-t_per_song = 5; % 10 second clips of each song
+t_per_song = 10; % 10 second clips of each song
 num_samples = t_per_song * fs;
 music_files = {};
 for i = 1:length(listname)
@@ -34,21 +34,22 @@ x = music_files{1};
 % make mono for now
 x = mean(x,2);
 
-xlen = length(x);
-noiselen = 1 * fs; % change noise every 1 sec
-num_frames = xlen / noiselen;
-xn = zeros(xlen,1); % signal + noise
-ref_noise = zeros(xlen,1); % noise
-gains = [.1 .1 .1 .1 .1 .1 .1 .1 .1 .1]; % can change this to be varying
-for f = 0:num_frames-1
-    ind = 1+f*noiselen:noiselen+f*noiselen;
-    ref_noise(ind) = gains(f+1)*randn(noiselen,1);
-end
-
-% form some correlation between primary and reference noise
-lp = fir1(11,.4);
-prim_noise = filter(lp,1,ref_noise); 
-xn = x + prim_noise;
+[xn,ref_noise] = create_and_add_noise(x,.5,10,.5,'crowd');
+% xlen = length(x);
+% noiselen = 1 * fs; % change noise every 1 sec
+% num_frames = xlen / noiselen;
+% xn = zeros(xlen,1); % signal + noise
+% ref_noise = zeros(xlen,1); % noise
+% gains = [.05 .05 .05 .05 .05 .05 .05 .05 .05 .05]; % can change this to be varying
+% for f = 0:num_frames-1
+%     ind = 1+f*noiselen:noiselen+f*noiselen;
+%     ref_noise(ind) = gains(f+1)*randn(noiselen,1);
+% end
+% 
+% % form some correlation between primary and reference noise
+% lp = fir1(10,.4);
+% prim_noise = filter(lp,1,ref_noise); 
+% xn = x + prim_noise;
 
 figure;
 subplot(311);
@@ -66,7 +67,7 @@ p = 10; % filter order
 mu = .001; % convergence factor for lms/nlms between 0 and 1
 lambda = 1; % "forgetting" factor for rls - usually between .98 and 1
 sigma = 1; % initial update matrix param
-gamma = .6; % gain parameter for afa convergence between .5 and 1
+gamma = .5; % gain parameter for afa convergence between .5 and 1
 
 xc_lms = perform_lms(xn,ref_noise,mu,p);
 xc_nlms = perform_nlms(xn,ref_noise,mu,p);
@@ -91,14 +92,20 @@ converge_afa = abs(x - xc_afa);
 figure;
 subplot(411);
 plot(converge_lms);
+ylabel('Mean Square Error');
+title('LMS mu = 0.001')
+xlabel('Samples n (iterations)')
 subplot(412);
 plot(converge_nlms);
+ylabel('Mean Square Error');
+title('NLMS mu = 0.001')
+xlabel('Samples n (iterations)')
 subplot(413);
 plot(converge_rls);
 subplot(414);
 plot(converge_afa);
 
-% Compare SNR 
+Compare SNR 
 snr_before = compute_snr(x,xn)
 
 snr_lms = compute_snr(x,xc_lms)
