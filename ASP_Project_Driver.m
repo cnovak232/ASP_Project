@@ -53,10 +53,10 @@ mu = .001; % convergence factor for lms/nlms between 0 and 1
 lambda = 1; % "forgetting" factor for rls - usually between .98 and 1
 gamma = .5; % gain parameter for afa convergence between .5 and 1
 
-xc_lms = perform_lms(xn,ref_noise,.0231,p);
-xc_nlms = perform_nlms(xn,ref_noise,.002,p);
-xc_rls = perform_rls(xn,ref_noise,1,p);
-xc_afa = perform_afa(xn,ref_noise,.5,p);
+xc_lms = perform_lms(xn,ref_noise,best_params.mu_lms,p);
+xc_nlms = perform_nlms(xn,ref_noise,best_params.mu_nlms,p);
+xc_rls = perform_rls(xn,ref_noise,best_params.lam_rls,p);
+xc_afa = perform_afa(xn,ref_noise,best_params.gam_afa,p);
 
 % figure;
 % subplot(411);
@@ -98,6 +98,13 @@ title('AFA Convergence')
 xlabel('Samples n (iterations)')
 sgtitle('Convergence of Algorithms with Optimal Parameters')
 
+%audiowrite('./Output_Audio/music_original.wav',x,fs);
+% audiowrite('./Output_Audio/music_orginal_plus_noise_crowd.wav',xn,fs);
+% audiowrite('./Output_Audio/music_cleaned_lms_crowd.wav',xc_lms,fs);
+% audiowrite('./Output_Audio/music_cleaned_nlms_crowd.wav',xc_nlms,fs);
+% audiowrite('./Output_Audio/music_cleaned_rls_crowd.wav',xc_rls,fs);
+% audiowrite('./Output_Audio/music_cleaned_afa_crowd.wav',xc_afa,fs);
+
 % Compare MSE
 mse_before = compute_ser(x,xn)
 
@@ -110,7 +117,7 @@ mse_rls = compute_ser(x,xc_rls) - mse_before
 mse_afa = compute_ser(x,xc_afa) - mse_before
 
 
-Compare SNR 
+%Compare SNR 
 snr_before = compute_snr(x,xn)
 
 snr_lms = compute_snr(x,xc_lms)
@@ -136,10 +143,10 @@ psnr_afa_imp = compute_psnr(x,xc_afa) - psnr_before
 p = 10;
 levels = 1;
 wname = 'db8';
-xc_dwt_lms = perform_wavelet_anc(xn,ref_noise,@perform_lms,.0231,p,levels,'db6',fs);
-xc_dwt_nlms = perform_wavelet_anc(xn,ref_noise,@perform_nlms,.002,p,levels,'db6',fs);
-xc_dwt_rls = perform_wavelet_anc(xn,ref_noise,@perform_rls,1,10,levels,'db6',fs);
-xc_dwt_afa = perform_wavelet_anc(xn,ref_noise,@perform_afa,.5,10,levels,'db6',fs);
+xc_dwt_lms = perform_wavelet_anc(xn,ref_noise,@perform_lms,.0231,p,levels,wname,fs);
+xc_dwt_nlms = perform_wavelet_anc(xn,ref_noise,@perform_nlms,.002,p,levels,wname,fs);
+xc_dwt_rls = perform_wavelet_anc(xn,ref_noise,@perform_rls,1,10,levels,wname,fs);
+xc_dwt_afa = perform_wavelet_anc(xn,ref_noise,@perform_afa,.5,10,levels,wname,fs);
 
 % Compare MSE
 mse_before = compute_ser(x,xn)
@@ -155,15 +162,9 @@ mse_afa = compute_ser(x,xc_dwt_afa) - mse_before
 
 snr_mr = compute_snr(x,xc_dwt_lms)
 
-% xd = decimate(xn,2,'fir');
-% rd = decimate(ref_noise,2,'fir');
-% 
-% xc_d_lms = perform_lms(xd,ref_noise,.0231,10);
-% 
-% xc_i_lms = interp(xc_d_lms,2);
-% 
-% mse_d = 10*log10(compute_mse(x,xc_i_lms))
-% snr_d = compute_snr(x,xc_i_lms)
+% audiowrite('./Output_Audio/music_cleaned_lms_dwt3_anc.wav',xc_dwt_lms,fs);
+% audiowrite('./Output_Audio/music_cleaned_rls_dwt3_anc.wav',xc_dwt_rls,fs);
+
 
 %% Compute optimal convergence params for given system
 
