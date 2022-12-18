@@ -1,59 +1,42 @@
-function xc = perform_wavelet_anc(x,r,mu,p,lvl,wname)
+function xc = perform_wavelet_anc(x,r,anc,anc_param,p,lvl,wname,fs)
 % This version of multirate adaptive processing applies wavelet based
 % thresholding to the detail bands (number depends on level of wavelet iters) 
 % while performing adaptive lms on the lowest approximation band. It then
 % reconstructions the signal for a cleaner signal 
-
-N = length(x);
-xdwt = zeros(1,N);
-rdwt = zeros(1,N);
-bands_x = struct;
-bands_r = struct;
-
-xd = x;
-rd = r;
-
-% perform multilevel wavelet decomposition
-for i = 1:lvl
-    [xl,xh] = dwt(xd,wname,'mode','per');
-    [rl,rh] = dwt(rd,wname,'mode','per');
-    nx = length(xl) + length(xh);
-    nr = length(rl) + length(rh);
-    levelname = ['d' num2str(i)];
-    bands_x.(levelname) = xh; % store level of details
-    bands_r.(levelname) = rh;
-    xdwt(1:nx) = [xl,xh];
-    rdwt(1:nr) = [rl,rh];
-    xd = xl;
-%     subplot(lvl+1,1,i);
-%     plot(xh);
-%     title(levelname);
-end
+mode = 'per';
+[xdwt,xbands,xband_info] = my_dwt(x,wname,lvl,fs,mode,0);
+[rdwt,rbands, rband_info] = my_dwt(r,wname,lvl,fs,mode,0);
 
 % run adaptive lms on the lowest band (coarse appriximation)
-xc_l = perform_lms(xl,rl,mu,p);
+xc_cA = anc(xbands.cA,rbands.cA,anc_param,p);
 
-fn = fieldnames(bands_x);
+fn = fieldnames(xbands);
 
-% threshold the detail bands (ideally  mostly noise).
-for i = 1:length(fn)
-    band = bands_x.(fn{i});
+% soft threshold the detail bands (ideally  mostly noise).
+for i = 1:length(fn)-1
+    band = xbands.(fn{i});
 
+%     xwt_sort = sort(abs(xwt(:)),'descend');
+%     ind = ceil( 0.10 * length(xwt_sort));
+%     thresh = xwt_sort(ind);
+%     
+%     xwt(abs(xwt) < thresh ) = 0;
     thr = thselect(band,'rigrsure');
     
     band_thr = wthresh(band,'s',thr);
     
-    bands_x.(fn{i}) = band_thr;
+    xbands.(fn{i}) = band_thr;
 end
 
 % perfrom multi level idwt to reconstruction signal
-xD = bands_x.(fn{end});
-xA = xc_l;
+xD = xbands.(fn{end-1});
+xA = xc_cA;
 for i = 1:lvl
-    xc_mr = idwt(xA,xD,wname,'mode','per');
+    xc_mr = idwt(xA,xD,wname,'mode',mode);
     if (i~=lvl)
-        xA = xc_mr;
-        xD = bands_x.(fn{end-i});
+        xD = xbands.(fn{(end-1)-i});
+        xA = xc_mr(1:length(xD));
+        %xD = [xD; zeros(length(xA)-length(xD),1)];
     end
 end
 

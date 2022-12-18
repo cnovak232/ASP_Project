@@ -20,7 +20,7 @@ audiodir = './SpeechSignals/';
 listname = dir(audiodir);
 listname = listname(3:end);
  fs = 16000;
- t_per_song = 5; % 10 second clips of each song
+ t_per_song = 10; % 10 second clips of each song
  num_samples = t_per_song * fs;
 speech_files = {};
 for i = 1:length(listname)
@@ -34,7 +34,7 @@ x = music_files{1};
 % make mono for now
 x = mean(x,2);
 
-[xn,ref_noise] = create_and_add_noise(x,.5,10,.5,'crowd');
+[xn,ref_noise] = create_and_add_noise(x,.1,10,.5,'gwhite');
 
 figure;
 subplot(311);
@@ -51,13 +51,12 @@ title('Signal with noise')
 p = 10; % filter order
 mu = .001; % convergence factor for lms/nlms between 0 and 1
 lambda = 1; % "forgetting" factor for rls - usually between .98 and 1
-sigma = 1; % initial update matrix param
 gamma = .5; % gain parameter for afa convergence between .5 and 1
 
-xc_lms = perform_lms(xn,ref_noise,mu,p);
-xc_nlms = perform_nlms(xn,ref_noise,mu,p);
-xc_rls = perform_rls(xn,ref_noise,lambda,sigma,p);
-xc_afa = perform_afa(xn,ref_noise,gamma,p);
+xc_lms = perform_lms(xn,ref_noise,.0231,p);
+xc_nlms = perform_nlms(xn,ref_noise,.002,p);
+xc_rls = perform_rls(xn,ref_noise,1,p);
+xc_afa = perform_afa(xn,ref_noise,.5,p);
 
 % figure;
 % subplot(411);
@@ -77,18 +76,39 @@ converge_afa = abs(x - xc_afa);
 figure;
 subplot(411);
 plot(converge_lms);
-ylabel('Mean Square Error');
-title('LMS mu = 0.001')
+ylabel(' Error');
+title('LMS Convergence')
 xlabel('Samples n (iterations)')
 subplot(412);
 plot(converge_nlms);
-ylabel('Mean Square Error');
-title('NLMS mu = 0.001')
+ylabel('Error');
+title('NLMS Convergence')
 xlabel('Samples n (iterations)')
 subplot(413);
 plot(converge_rls);
+ylabel('Error');
+title('RLS Convergence')
+xlabel('Samples n (iterations)')
+ylim([0 .2]);
 subplot(414);
 plot(converge_afa);
+ylim([0 .2]);
+ylabel('Error');
+title('AFA Convergence')
+xlabel('Samples n (iterations)')
+sgtitle('Convergence of Algorithms with Optimal Parameters')
+
+% Compare MSE
+mse_before = compute_ser(x,xn)
+
+mse_lms = compute_ser(x,xc_lms) - mse_before
+
+mse_nlms = compute_ser(x,xc_nlms) - mse_before
+
+mse_rls = compute_ser(x,xc_rls) - mse_before
+
+mse_afa = compute_ser(x,xc_afa) - mse_before
+
 
 Compare SNR 
 snr_before = compute_snr(x,xn)
@@ -104,82 +124,50 @@ snr_afa = compute_snr(x,xc_afa)
 % Compare PSNR 
 psnr_before = compute_psnr(x,xn)
 
-psnr_lms = compute_psnr(x,xc_lms)
+psnr_lms_imp = compute_psnr(x,xc_lms) - psnr_before
 
-psnr_nlms = compute_psnr(x,xc_nlms)
+psnr_nlms_imp = compute_psnr(x,xc_nlms) - psnr_before
 
-psnr_rls = compute_psnr(x,xc_rls)
+psnr_rls_imp = compute_psnr(x,xc_rls) - psnr_before
 
-psnr_afa = compute_psnr(x,xc_afa)
+psnr_afa_imp = compute_psnr(x,xc_afa) - psnr_before
 
 %% Multirate
+p = 10;
+levels = 1;
+wname = 'db8';
+xc_dwt_lms = perform_wavelet_anc(xn,ref_noise,@perform_lms,.0231,p,levels,'db6',fs);
+xc_dwt_nlms = perform_wavelet_anc(xn,ref_noise,@perform_nlms,.002,p,levels,'db6',fs);
+xc_dwt_rls = perform_wavelet_anc(xn,ref_noise,@perform_rls,1,10,levels,'db6',fs);
+xc_dwt_afa = perform_wavelet_anc(xn,ref_noise,@perform_afa,.5,10,levels,'db6',fs);
 
-xc_wavelet = perform_wavelet_anc(xn,ref_noise,.01,10,1,'db6');
+% Compare MSE
+mse_before = compute_ser(x,xn)
 
-snr_mr = compute_snr(x,xc_wavelet)
+mse_lms = compute_ser(x,xc_dwt_lms) - mse_before
 
-%% Test parameters
-order = 4:20;
-for p = 1:length(order)
-    mu = linspace(.0001,.1,100);
-    mse_lms = zeros(1,length(mu));
-    mse_nlms = zeros(1,length(mu));
-    for i = 1:length(mu)
-        xc_lms = perform_lms(xn,ref_noise,mu(i),order(p));
-        xc_nlms = perform_nlms(xn,ref_noise,mu(i),order(p));
-    
-        mse_lms(i) = compute_mse(x,xc_lms);
-        mse_nlms(i) = compute_mse(x,xc_nlms);
-    end
-%     
-%     figure;
-%     plot(mu,mse_lms,mu,mse_nlms);
-%     xlabel('Step Size (mu)');
-%     ylabel('MSE');
-%     legend('LMS','NLMS');
-    
-    [min_mse_lms,loc_lms] = min(mse_lms);
-    best_mu_lms(p) = mu(loc_lms);
-    [min_mse_nlms,loc_nlms] = min(mse_nlms);
-    best_mu_nlms(p) = mu(loc_nlms);
-    
-    lambda = linspace(.98,1,10);
-    mse_rls = zeros(1,length(lambda));
-    for i = 1:length(lambda)
-        xc_rls = perform_rls(xn,ref_noise,lambda(i),1,order(p));
-    
-        mse_rls(i) = compute_mse(x,xc_rls);
-    end
-%     figure;
-%     plot(lambda,mse_rls);
-%     xlabel('Forgetting Factor (lambda)');
-%     ylabel('MSE');
-%     legend('RLS');
-     [min_mse_rls,loc_rls] = min(mse_rls);
-     best_lam_rls(p) = lambda(loc_rls);
-    
-    gamma = linspace(.5,1,50);
-    mse_afa = zeros(1,length(gamma));
-    for i = 1:length(gamma)
-        xc_afa = perform_afa(xn,ref_noise,gamma(i),order(p));
-    
-        mse_afa(i) = compute_mse(x,xc_afa);
-    end
-%     figure;
-%     plot(gamma,mse_afa);
-%     xlabel('Gain Step Size (gamma)');
-%     ylabel('MSE');
-%     legend('AFA');
-    [min_mse_afa,loc_afa] = min(mse_afa);
-    best_gam_afa(p) = gamma(loc_afa);
-end
+mse_nlms = compute_ser(x,xc_dwt_nlms) - mse_before
 
-figure;
-plot(order,best_mu_lms(1:17),order,best_mu_nlms(1:17));
-xlabel('Filter Order');
-ylabel('Mean Square Error');
-title('Best Mu vs Filter Order');
-legend('LMS','NLMS');
+mse_rls = compute_ser(x,xc_dwt_rls) - mse_before
+
+mse_afa = compute_ser(x,xc_dwt_afa) - mse_before
+
+
+snr_mr = compute_snr(x,xc_dwt_lms)
+
+% xd = decimate(xn,2,'fir');
+% rd = decimate(ref_noise,2,'fir');
+% 
+% xc_d_lms = perform_lms(xd,ref_noise,.0231,10);
+% 
+% xc_i_lms = interp(xc_d_lms,2);
+% 
+% mse_d = 10*log10(compute_mse(x,xc_i_lms))
+% snr_d = compute_snr(x,xc_i_lms)
+
+%% Compute optimal convergence params for given system
+
+best_params = compute_optimal_params(x,xn,ref_noise,10);
 
 
 %% Compare Filter order vs SNR
@@ -245,38 +233,6 @@ plot(p,psnr_lms,p,psnr_nlms,p,psnr_rls,p,psnr_afa);
 legend('LMS','NLMS','RLS','AFA');
 xlabel('Filter Order');
 ylabel('Peak SNR (dB)');
-    
-
-%% 
-converge_lms = abs(x - xc_lms);
-converge_nlms = abs(x - xc_nlms);
-converge_rls = abs( x - xc_rls);
-converge_afa = abs(x - xc_afa);
-figure;
-sgtitle('Convergence of Algorithms with Optimal Parameters')
-
-subplot(411);
-plot(converge_lms);
-title('LMS')
-subplot(412);
-plot(converge_nlms);
-title('NMLS')
-subplot(413);
-plot(converge_rls);
-title('RLS')
-subplot(414);
-plot(converge_afa);
-title('AFA')
-
-snr_before = compute_snr(x,xn)
-
-snr_lms = compute_snr(x,xc_lms)
-
-snr_nlms = compute_snr(x,xc_nlms)
-
-snr_rls = compute_snr(x,xc_rls)
-
-snr_afa = compute_snr(x,xc_afa)
 
 
 
