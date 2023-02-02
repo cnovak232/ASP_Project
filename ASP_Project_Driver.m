@@ -173,7 +173,7 @@ best_params = compute_optimal_params(x,xn,ref_noise,10);
 
 %% Compare Filter order vs SNR
 
-p = 4:32;
+p = 4:32; % filter orders
 mse_lms = zeros(1,length(p));
 mse_nlms = zeros(1,length(p));
 mse_rls = zeros(1,length(p));

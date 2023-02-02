@@ -2,10 +2,10 @@ function [xn,rn] = create_and_add_noise(x,gain,c_order,c_w,type)
 % Inputs
 % x - primary clean source signal
 % gain - level applied to noise
-% c_order - the order to filter to simulate channel differences
+% c_order - the order filter to simulate channel differences
 % c_w - cutoff freq for filter in normalized freq (0 - 1) ie .4
-%       can be a two length vector for bandpass ie [.2 .6]
-% type - noise type - gwhite or crowd 
+%       Can be a two length vector for bandpass ie [.2 .6]
+% type - noise type: 'gwhite' or 'crowd' 
 
 xlen = length(x);
 if strcmp(type,'gwhite')

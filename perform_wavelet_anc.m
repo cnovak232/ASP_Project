@@ -1,10 +1,13 @@
 function xc = perform_wavelet_anc(x,r,anc,anc_param,p,lvl,wname,fs)
 % This version of multirate adaptive processing applies wavelet based
 % thresholding to the detail bands (number depends on level of wavelet iters) 
-% while performing adaptive lms on the lowest approximation band. It then
+% while performing an adaptive algorithm on the lowest approximation band. It then
 % reconstructions the signal for a cleaner signal 
+
 mode = 'per';
+% dwt on signal + noise
 [xdwt,xbands,xband_info] = my_dwt(x,wname,lvl,fs,mode,0);
+% dwt of reference noise
 [rdwt,rbands, rband_info] = my_dwt(r,wname,lvl,fs,mode,0);
 
 % run adaptive lms on the lowest band (coarse appriximation)
@@ -12,15 +15,16 @@ xc_cA = anc(xbands.cA,rbands.cA,anc_param,p);
 
 fn = fieldnames(xbands);
 
-% soft threshold the detail bands (ideally  mostly noise).
+% soft threshold the detail bands (ideally mostly noise).
 for i = 1:length(fn)-1
     band = xbands.(fn{i});
 
+% TODO: fix own method
 %     xwt_sort = sort(abs(xwt(:)),'descend');
 %     ind = ceil( 0.10 * length(xwt_sort));
 %     thresh = xwt_sort(ind);
-%     
 %     xwt(abs(xwt) < thresh ) = 0;
+
     thr = thselect(band,'rigrsure');
     
     band_thr = wthresh(band,'s',thr);

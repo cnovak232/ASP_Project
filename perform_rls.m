@@ -31,7 +31,6 @@ for n = 1:N
     Pn = (lambda^-1)*Pn - ((lambda^-1)*((gn*r_buffer')*Pn));
 
     w = w + (gn*e);
-    %J = (lambda^(N-n))*(abs(e)^2);
     
     r_buffer(end) = 0;
     r_buffer = circshift(r_buffer,1);
